@@ -1,0 +1,85 @@
+from database.dao import DAO
+import networkx as nx
+
+class Model:
+    def __init__(self):
+        self.dao=DAO()
+        self.grafo=None
+
+    def get_date_range(self):
+        return self.dao.get_date_range()
+
+    def load_cateogories(self):
+        lista=self.dao.read_categories()
+        if len(lista)==0:
+            print("Lista categorie vuota "
+                  "we are in model!!!")
+            return []
+        return lista
+
+    def load_product_by_category(self,category):
+        lista=self.dao.read_products_by_category(category)
+        if len(lista)==0:
+            print("Lista product vuota "
+                  "we are in model!!!")
+            return []
+        return lista
+
+    def load_ordini(self,data1,data2):
+        lista=self.dao.read_product2(data1,data2)
+        if len(lista)==0:
+            print("Lista product vuota "
+                  "we are in model!!!")
+            return []
+        return lista
+
+    def build_graph(self,category,dataI,dataF):
+        self.grafo=nx.DiGraph()
+        self.grafo.clear()
+        lista_nodi=self.load_product_by_category(category)
+        if len(lista_nodi)==0:
+            print("Lista product vuota "
+                  "we are in model!!!")
+            return []
+        for n in lista_nodi:
+            self.grafo.add_node(n.id,name=n.name)
+        lista_ordini=self.load_ordini(dataI,dataF)
+        if len(lista_ordini)==0:
+            print("Lista product vuota "
+                  "we are in model!!!")
+            return []
+        for n in lista_ordini:
+            id1=n.id
+            ordini1=n.ordini
+            for c in lista_ordini:
+                id2=c.id
+                ordini2=c.ordini
+                if id1!=id2 and id1 in self.grafo and id2 in self.grafo:
+                    if ordini1>ordini2:
+                        self.grafo.add_edge(id1,id2,weight=ordini1+ordini2)
+                    elif ordini1<ordini2:
+                        self.grafo.add_edge(id2,id1,weight=ordini1+ordini2)
+                    elif ordini1==ordini2:
+                        self.grafo.add_edge(id1,id2,weight=ordini1+ordini2)
+                        self.grafo.add_edge(id2,id1,weight=ordini1+ordini2)
+        return self.grafo
+
+    def get_lista(self):
+        results=[]
+        for id,attr in self.grafo.nodes(data=True):
+            nome=attr["name"]
+            peso_out=0
+            peso_in=0
+            for u,s,attr in self.grafo.out_edges(id,data=True):
+                peso_out+=attr['weight']
+            for u,s,attr in self.grafo.in_edges(id,data=True):
+                peso_in+=attr['weight']
+            score=peso_out-peso_in
+            results.append([nome,score])
+        risultati_ordinati=sorted(results,key=lambda x: x[1],reverse=True)[:5]
+        return risultati_ordinati
+
+m=Model()
+m.build_graph(7,"2016-01-01","2018-12-28")
+print(m.grafo)
+print(m.get_lista())
