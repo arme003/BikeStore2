@@ -1,0 +1,9 @@
+from dataclasses import dataclass
+@dataclass
+
+class Product2:
+    id:int
+    ordini:int
+
+    def __hash__(self):
+        return hash(self.id)
