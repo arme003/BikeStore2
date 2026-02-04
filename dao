@@ -1,0 +1,89 @@
+from database.DB_connect import DBConnect
+from model.category import Category
+from model.product import Product
+from model.product2 import Product2
+
+class DAO:
+    def __init__(self):
+        pass
+    def get_date_range(self):
+        conn = DBConnect.get_connection()
+        results = []
+        cursor = conn.cursor(dictionary=True)
+        query = """ SELECT DISTINCT order_date
+                    FROM `order` 
+                    ORDER BY order_date """
+        cursor.execute(query)
+        for row in cursor:
+            results.append(row["order_date"])
+        first = results[0]
+        last = results[-1]
+        cursor.close()
+        conn.close()
+        return first, last
+
+    def read_categories(self):
+        cnx=DBConnect.get_connection()
+        if cnx is None:
+            print("Errore di connessione")
+            return []
+        results=[]
+        cursor = cnx.cursor(dictionary=True)
+        query="""select distinct id,category_name as name 
+        from category order by id asc;"""
+        try:
+            cursor.execute(query)
+            for row in cursor:
+                results.append(Category(row["id"],row["name"]))
+        except Exception as e:
+            print(f"Errore nella esecuzione della query: {e}")
+        finally:
+            cursor.close()
+            cnx.close()
+        return results
+
+    def read_products_by_category(self, category):
+        cnx=DBConnect.get_connection()
+        if cnx is None:
+            print("Errore di connessione")
+            return []
+        results=[]
+        cursor = cnx.cursor(dictionary=True)
+        query="""select distinct id,product_name as name 
+        from product where category_id = %s;"""
+        try:
+            cursor.execute(query,(category,))
+            for row in cursor:
+                results.append(Product(row["id"],row["name"]))
+        except Exception as e:
+            print(f"Errore nella esecuzione della query: {e}")
+        finally:
+            cursor.close()
+            cnx.close()
+        return results
+
+    def read_product2(self,data1,data2):
+        cnx=DBConnect.get_connection()
+        if cnx is None:
+            print("Errore di connessione")
+            return []
+        results=[]
+        cursor = cnx.cursor(dictionary=True)
+        query="""select ot.product_id as id,count(distinct o.id)as ordini 
+        from order_item ot,`order` o 
+        where o.id=ot.order_id and o.order_date between %s and %s 
+        group by ot.product_id;"""
+        try:
+            cursor.execute(query,(data1,data2))
+            for row in cursor:
+                results.append(Product2(row["id"],row["ordini"]))
+        except Exception as e:
+            print(f"Errore nella esecuzione della query: {e}")
+        finally:
+            cursor.close()
+            cnx.close()
+        return results
+
+
+
+
